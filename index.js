@@ -1,6 +1,6 @@
 const express = require('express');
 const multer = require('multer');
-const sharp = require('sharp');
+const jimp = require('jimp');
 const path = require('path');
 const fs = require('fs').promises;
 const cors = require('cors');
@@ -8,42 +8,56 @@ const cors = require('cors');
 const app = express();
 const port = 5000;
 
-
 app.use(express.json());
-
-
-const corsOptions = {
-    origin: ["*"],
-    methods: ["POST", "GET", "PUT", "DELETE"],
-    credentials: true,
-};
-
-app.use(cors(corsOptions));
+app.use(cors());
 
 // Set up multer to handle file uploads
 const upload = multer({ dest: 'uploads/' });
 
-// Image enhancement function
+// Function to enhance image for better text visibility
 const enhanceImage = async (inputPath, outputPath) => {
-    const imageBuffer = await fs.readFile(inputPath);
-  
-    // Perform enhancement operations using sharp
-    const enhancedImageBuffer = await sharp(imageBuffer)
-      .resize(2400, 1800, { fit: "contain" }) // Increase dimensions for better quality
-      .gamma(3.0) // Adjust gamma correction
-      .modulate({ brightness: 1.8, saturation: 4.0, contrast: 15.5 })
-      .sharpen({ sigma: 10, flat: 2, jagged: 0.2 })
-      .normalize()
-      .toBuffer();
-  
+  try {
+    const image = await jimp.read(inputPath);
+
+    // Resize the image with "contain" option
+    image.resize(1600, 1200, jimp.RESIZE_CONTAIN);
+
+    // Adjust brightness
+    image.brightness(0.2);
+
+    // Apply a contrast stretch
+    image.contrast(0.6);
+
+    
+    image.posterize(2);
+
+    // image.threshold({ max: 250 });
+    // Normalize the image
+    image.normalize();
+
+    // Enhance text visibility by adjusting saturation and lightness
+    image.color([
+      { apply: 'saturate', params: [60] },
+      { apply: 'lighten', params: [10] }
+    ]);
+
+    // Simulate sharpening using convolution matrix
+    const sharpenMatrix = [
+      [-1, -1, -1],
+      [-1, 9, -1],
+      [-1, -1, -1],
+    ];
+    image.convolute(sharpenMatrix);
+
     // Save the enhanced image
-    await fs.writeFile(outputPath, enhancedImageBuffer);
-  
+    await image.writeAsync(outputPath);
+
     console.log('Image enhancement successful');
-  };
-  
-  
-  
+  } catch (error) {
+    console.error('Error enhancing image:', error);
+    throw error; // Rethrow the error to handle it in the calling function
+  }
+};
 
 // API endpoint for handling image uploads and enhancement
 app.post('/upload', upload.single('image'), async (req, res) => {
@@ -51,10 +65,12 @@ app.post('/upload', upload.single('image'), async (req, res) => {
     // Input and output paths for the image
     const inputImagePath = req.file.path;
     const outputImagePath = path.join(__dirname, 'uploads', 'enhanced-image.jpg');
-    // const outputImagePath = path.join('uploads', 'enhanced-image.jpg');
 
     // Enhance the image
     await enhanceImage(inputImagePath, outputImagePath);
+
+    // Delete the uploaded image to manage the 'uploads' folder
+    await fs.unlink(inputImagePath);
 
     // Send the enhanced image back to the frontend
     res.sendFile(outputImagePath);
