@@ -9,12 +9,13 @@ const app = express();
 const port = 5000;
 
 app.use(express.json());
-const corsOptions = {
-  origin: ["*"],
-  credentials: true,
-};
 
-app.use(cors(corsOptions));
+app.use(
+  cors({
+    origin: ["*"],
+    credentials: true,
+  })
+);
 
 // Set up multer to handle file uploads
 const upload = multer({ dest: 'uploads/' });
