@@ -12,7 +12,7 @@ app.use(express.json());
 
 app.use(
   cors({
-    origin: ["*"],
+    origin: ["*","https://invoice-reader.vercel.app","http://localhost:3000"],
     credentials: true,
   })
 );
