@@ -78,6 +78,11 @@ app.post('/upload', upload.single('image'), async (req, res) => {
     // Delete the uploaded image to manage the 'uploads' folder
     await fs.unlink(inputImagePath);
 
+    res.header('Access-Control-Allow-Origin', '*');
+    res.header('Access-Control-Allow-Credentials', true);
+    res.header('Access-Control-Allow-Methods', 'POST');
+    res.header('Access-Control-Allow-Headers', 'Content-Type');
+
     // Send the enhanced image back to the frontend
     res.sendFile(outputImagePath);
   } catch (error) {
